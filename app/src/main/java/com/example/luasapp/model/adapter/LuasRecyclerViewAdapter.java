@@ -50,6 +50,7 @@ public class LuasRecyclerViewAdapter extends
             holder.destinationName.setTextColor(Color.RED);
             holder.dueOn.setVisibility(View.GONE);
             holder.min.setVisibility(View.GONE);
+            holder.time.setVisibility(View.INVISIBLE);
             holder.destination.setVisibility(View.INVISIBLE);
         } else {
             if (trams.getDueMins().equals("DUE")) {
