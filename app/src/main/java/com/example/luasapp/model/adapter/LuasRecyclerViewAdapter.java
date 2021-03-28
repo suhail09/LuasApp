@@ -43,13 +43,23 @@ public class LuasRecyclerViewAdapter extends
     public void onBindViewHolder(ViewHolder holder, int position) {
         final Tram trams = luasData.get(position);
 
-        if (position == 0) {
-            holder.time.setTextColor(Color.RED);
+        holder.time.setTextColor(position == 0 ? Color.RED : Color.DKGRAY);
+
+        if (trams.getDueMins().equals("")) {
+            holder.destinationName.setText(trams.getDestination());
+            holder.destinationName.setTextColor(Color.RED);
+            holder.dueOn.setVisibility(View.GONE);
+            holder.min.setVisibility(View.GONE);
+            holder.destination.setVisibility(View.INVISIBLE);
         } else {
-            holder.time.setTextColor(Color.DKGRAY);
+            if (trams.getDueMins().equals("DUE")) {
+                holder.min.setText("");
+            } else {
+                holder.min.setText("min");
+            }
+            holder.time.setText(trams.getDueMins());
+            holder.destinationName.setText(trams.getDestination());
         }
-        holder.time.setText(trams.getDueMins());
-        holder.destination_name.setText(trams.getDestination());
 
     }
 
@@ -62,35 +72,36 @@ public class LuasRecyclerViewAdapter extends
 
     // stores and recycles views as they are scrolled off screen
     public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
-        private TextView dueOn, time, direction, destination, destination_name;
-        private ImageView imageView;
+        private TextView dueOn, time, direction, destination, destinationName, min;
+        private ImageView directionImage;
 
         ViewHolder(View itemView) {
             super(itemView);
             dueOn = itemView.findViewById(R.id.due_on);
+            min = itemView.findViewById(R.id.min);
             time = itemView.findViewById(R.id.time);
             direction = itemView.findViewById(R.id.direction);
             destination = itemView.findViewById(R.id.destination);
-            destination_name = itemView.findViewById(R.id.destination_name);
-            imageView = itemView.findViewById(R.id.imageView);
+            destinationName = itemView.findViewById(R.id.destination_name);
+            directionImage = itemView.findViewById(R.id.directionImage);
 
-            dueOn.setText("Due In (min) :");
+            dueOn.setText("Due In :");
             destination.setText("Destination :");
             time.setTextSize(50);
-            destination_name.setTextSize(25);
-            destination_name.setTextColor(Color.DKGRAY);
+            destinationName.setTextSize(25);
+            destinationName.setTextColor(Color.DKGRAY);
 
             Calendar now = Calendar.getInstance();
             if (now.get(Calendar.AM_PM) == Calendar.AM) {
                 direction.setText("Outbound");
                 direction.setTypeface(null, Typeface.BOLD);
-                imageView.setImageResource(R.drawable.ic_inbound_arrow);
-                imageView.setRotation(90);
+                directionImage.setImageResource(R.drawable.ic_inbound_arrow);
+                directionImage.setRotation(90);
             } else {
                 direction.setText("Inbound");
                 direction.setTypeface(null, Typeface.BOLD);
-                imageView.setImageResource(R.drawable.ic_inbound_arrow);
-                imageView.setRotation(270);
+                directionImage.setImageResource(R.drawable.ic_inbound_arrow);
+                directionImage.setRotation(270);
             }
 
             itemView.setOnClickListener(this);

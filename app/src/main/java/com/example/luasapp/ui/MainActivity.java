@@ -15,9 +15,12 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.util.Log;
 import android.view.View;
@@ -30,18 +33,22 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener {
 
     private LuasRecyclerViewAdapter luasRecyclerViewAdapter;
     private RestManager restManager;
+    private SwipeRefreshLayout swipeLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         setContentView(R.layout.activity_scrolling);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         CollapsingToolbarLayout toolBarLayout = findViewById(R.id.toolbar_layout);
+        swipeLayout = findViewById(R.id.swipe_container);
+        swipeLayout.setOnRefreshListener(this);
 
         restManager = new RestManager();
         configViews();
@@ -52,25 +59,10 @@ public class MainActivity extends AppCompatActivity {
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setImageResource(R.drawable.ic_refresh);
-        fab.setColorFilter(Color.RED);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (getNetworkAvailability()) {
-                    loadLuasFeed(now.get(Calendar.AM_PM) == Calendar.AM ? "mar" : "sti");
-                } else {
-                    Snackbar.make(findViewById(android.R.id.content),
-                            "Please connect to the internet!", Snackbar.LENGTH_LONG).show();
-                }
-            }
-        });
+        fab.setColorFilter(ContextCompat.getColor(this, R.color.white));
+        fab.setOnClickListener(view -> loadRecyclerViewData(now));
 
-        if (getNetworkAvailability()) {
-            loadLuasFeed(now.get(Calendar.AM_PM) == Calendar.AM ? "mar" : "sti");
-        } else {
-            Snackbar.make(findViewById(android.R.id.content),
-                    "Please connect to the internet!", Snackbar.LENGTH_LONG).show();
-        }
+        loadRecyclerViewData(now);
     }
 
     private void configViews() {
@@ -81,7 +73,25 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setAdapter(luasRecyclerViewAdapter);
     }
 
+    private void loadRecyclerViewData(Calendar now) {
+        if (getNetworkAvailability()) {
+            loadLuasFeed(now.get(Calendar.AM_PM) == Calendar.AM ? "mar" : "sti");
+        } else {
+            Snackbar.make(findViewById(android.R.id.content),
+                    "Please connect to the internet!", Snackbar.LENGTH_LONG).show();
+        }
+    }
+
+    @Override
+    public void onRefresh() {
+        Calendar now = Calendar.getInstance();
+        loadRecyclerViewData(now);
+    }
+
     private void loadLuasFeed(String stopAbbreviation) {
+
+        // Showing refresh animation before making http call
+        swipeLayout.setRefreshing(true);
 
         // To remove the duplicated list below
         luasRecyclerViewAdapter.reset();
@@ -98,7 +108,7 @@ public class MainActivity extends AppCompatActivity {
 
                     for (int i = 0; i < stopInfo.getDirection().size(); i++) {
                         Direction directions = stopInfo.getDirection().get(i);
-                        if (stopAbbreviation == "mar" &&
+                        if (stopAbbreviation.equals("mar") &&
                                 directions.getName().contentEquals("Outbound")) {
                             for (int j = 0; j < directions.getTram().size(); j++) {
                                 Tram trams = directions.getTram().get(j);
@@ -107,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
                             }
                         }
 
-                        if (stopAbbreviation == "sti" &&
+                        if (stopAbbreviation.equals("sti") &&
                                 directions.getName().contentEquals("Inbound")) {
                             for (int j = 0; j < directions.getTram().size(); j++) {
                                 Tram trams = directions.getTram().get(j);
@@ -117,6 +127,9 @@ public class MainActivity extends AppCompatActivity {
                         }
 
                     }
+
+                    // Stopping the refresh animation
+                    swipeLayout.setRefreshing(false);
 
                 } else {
                     int sc = response.code();
@@ -133,6 +146,9 @@ public class MainActivity extends AppCompatActivity {
                             Log.e("Error", "Generic Error");
                             break;
                     }
+
+                    // Stopping the refresh animation
+                    swipeLayout.setRefreshing(false);
                 }
             }
 
@@ -140,6 +156,9 @@ public class MainActivity extends AppCompatActivity {
             public void onFailure(Call<LuasPojo> call, Throwable t) {
                 Snackbar.make(findViewById(android.R.id.content), "Not connected to the api",
                         Snackbar.LENGTH_LONG).show();
+
+                // Stopping the refresh animation
+                swipeLayout.setRefreshing(false);
             }
         });
 
@@ -149,17 +168,4 @@ public class MainActivity extends AppCompatActivity {
         return Utils.isNetworkAvailable(getApplicationContext());
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        return super.onOptionsItemSelected(item);
-    }
 }
